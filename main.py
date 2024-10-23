@@ -10,8 +10,8 @@ pygame.init()
 SCREEN_HEIGHT = 600
 SCREEN_WIDTH = 1000
 FPS_LIMIT = 60
-SNAKE_SPEED = .095
-PRIORITIZE_VERTICAL_MOVEMENT = True
+SNAKE_SPEED = .095 # Lower = Faster, Higher = Slower
+PRIORITIZE_VERTICAL_MOVEMENT = True # To allow holding Vertical Direction and press Horizontals
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Snake Game - Python")
@@ -22,7 +22,7 @@ class Snake:
     def __init__(self, start_pos, cell_size=20):
         
         self.body = [
-            [start_pos.x, start_pos.y], # Head
+            [start_pos.x, start_pos.y], # Headw
             [start_pos.x - cell_size, start_pos.y], # 
             [start_pos.x - cell_size * 2, start_pos.y] # Tail Position
         ]
@@ -70,12 +70,12 @@ class Snake:
     def draw_snake(self):
         
         for segment in self.body:
-            pygame.draw.rect(screen, "red", pygame.Rect(segment[0], segment[1], self.cell_size - 1, self.cell_size - 1))
+            pygame.draw.rect(screen, "green", pygame.Rect(segment[0], segment[1], self.cell_size - 1, self.cell_size - 1))
             
         return self.body[0]
         
         
-    def increase_snake(self):
+    def grow(self):
         
         if self.prev_tail_pos:
             self.body.append(self.prev_tail_pos)
@@ -84,7 +84,7 @@ class Snake:
     def detect_wall_collision(self, screen_width, screen_height):
         
         head_pos = self.body[0]
-        if head_pos[0] <= 0 or head_pos[0] >= screen_width or head_pos[1] <= 0 or head_pos[1] >= screen_height:
+        if head_pos[0] < -5 or head_pos[0] > screen_width + 5 or head_pos[1] < -5 or head_pos[1] > screen_height + 5:
             return True
         
         return False
@@ -107,25 +107,30 @@ class Snake:
 
 def main():
     
+    cell_size = 20
+    x = SCREEN_WIDTH // cell_size - 1
+    y = SCREEN_HEIGHT // cell_size - 1
+    in_game_Speed = SNAKE_SPEED
     # Starting Position of player, Center of Screen
     player_pos = pygame.Vector2(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
-    apple_pos = pygame.Vector2(random.randint(100, SCREEN_WIDTH - 100), random.randint(100, SCREEN_HEIGHT-100))
+    apple_pos = pygame.Vector2(random.randint(1, x) * cell_size, random.randint(1, y) * cell_size)#pygame.Vector2(random.randint(100, SCREEN_WIDTH - 100), random.randint(100, SCREEN_HEIGHT-100))
 
     last_move_time = 0
-    snake = Snake(player_pos, cell_size=20)
+    snake = Snake(player_pos, cell_size)
     
     running = True # Game Loop
     while running:
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+            if event.type == pygame.QUIT:            
                 running = False
-                
+        
         current_time = time.time()
         
         # Draw an apple
-        apple = pygame.draw.circle(screen, "orange", apple_pos, 12)
+        apple = pygame.draw.rect(screen, "red", pygame.Rect(apple_pos.x, apple_pos.y, cell_size - 1, cell_size - 1))
         
-        if current_time - last_move_time >= SNAKE_SPEED:
+
+        if current_time - last_move_time >= in_game_Speed:
             snake.move()
             last_move_time = current_time
             
@@ -141,60 +146,64 @@ def main():
         
         
         if snake.detect_apple_collision(apple):
-            snake.increase_snake()
-            apple_pos = pygame.Vector2(random.randint(100, SCREEN_WIDTH - 100), random.randint(100, SCREEN_HEIGHT-100))
+            snake.grow()
+            apple_pos = pygame.Vector2(random.randint(1, x) * cell_size, random.randint(1, y) * cell_size)
+            while True:
+                if [apple_pos.x, apple_pos.y] in snake.body:
+                    apple_pos = pygame.Vector2(random.randint(1, x) * cell_size, random.randint(1, y) * cell_size)
+                else:
+                    break
+            
             apple.x = apple_pos.x
             apple.y = apple_pos.y
-            
             
         keys = pygame.key.get_pressed()
         
         if PRIORITIZE_VERTICAL_MOVEMENT:
+            # Pressing left or rigth while holding vertical direction does nothing
             if keys[pygame.K_w] or keys[pygame.K_s]:
                 if keys[pygame.K_w] and keys[pygame.K_s]:
                     pass
                 elif keys[pygame.K_w]:
-                    print("Up")
                     snake.change_direction(Direction.UP)
                 else:
-                    print("Down")
                     snake.change_direction(Direction.DOWN)
             elif keys[pygame.K_a] or keys[pygame.K_d]:
                 if keys[pygame.K_a] and keys[pygame.K_d]:
                     pass
                 elif keys[pygame.K_a]:
-                    print("Left")
                     snake.change_direction(Direction.LEFT)
                 else:
-                    print("Right")
                     snake.change_direction(Direction.RIGHT)
                     
         else:
+            # Pressing up or down while holding horizontal direction does nothing
             if keys[pygame.K_a] or keys[pygame.K_d]:
                 if keys[pygame.K_a] and keys[pygame.K_d]:
                     pass
                 elif keys[pygame.K_a]:
-                    print("Left")
                     snake.change_direction(Direction.LEFT)
                 else:
-                    print("Right")
                     snake.change_direction(Direction.RIGHT)
             elif keys[pygame.K_w] or keys[pygame.K_s]:
                 if keys[pygame.K_w] and keys[pygame.K_s]:
                     pass
                 elif keys[pygame.K_w]:
-                    print("Up")
                     snake.change_direction(Direction.UP)
                 else:
-                    print("Down")
                     snake.change_direction(Direction.DOWN)
+                    
+        if keys[pygame.K_SPACE]:
+            in_game_Speed = 0.05
+        else:
+            in_game_Speed = SNAKE_SPEED
 
         
         pygame.display.flip() # Displays the work on the screen
         
         # Set FPS limit
         clock.tick(FPS_LIMIT) / 1000
-        screen.fill((255,255,255)) # Set the color of the screen
+        screen.fill((0,0,0)) # Set the color of the screen
 
         
     pygame.quit()

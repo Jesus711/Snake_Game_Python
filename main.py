@@ -10,7 +10,8 @@ pygame.init()
 SCREEN_HEIGHT = 600
 SCREEN_WIDTH = 1000
 FPS_LIMIT = 60
-SNAKE_SPEED = 0.075
+SNAKE_SPEED = .095
+PRIORITIZE_VERTICAL_MOVEMENT = True
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Snake Game - Python")
@@ -52,7 +53,7 @@ class Snake:
         # rest of the body = previous segment coordinates excluding the last element
         self.body = [next_head_pos] + self.body[:-1]
         
-    # TODO: BUG found in movement: if player holds W or UP, player is allowed to move the opposite h direction
+        
     def change_direction(self, new_direction):
         
         opposite_direction = {
@@ -121,9 +122,6 @@ def main():
                 
         current_time = time.time()
         
-        # Draw the snake
-        snake.draw_snake()
-        
         # Draw an apple
         apple = pygame.draw.circle(screen, "orange", apple_pos, 12)
         
@@ -131,6 +129,9 @@ def main():
             snake.move()
             last_move_time = current_time
             
+        # Draw the snake
+        snake.draw_snake()
+        
         # Border Collision Detectiona
         if snake.detect_wall_collision(SCREEN_WIDTH, SCREEN_HEIGHT):
             running = False
@@ -144,18 +145,47 @@ def main():
             
             
         keys = pygame.key.get_pressed()
-        #print(player_pos)
-        if keys[pygame.K_w]:
-            snake.change_direction(Direction.UP)
         
-        if keys[pygame.K_s]:
-            snake.change_direction(Direction.DOWN)
+        if PRIORITIZE_VERTICAL_MOVEMENT:
+            if keys[pygame.K_w] or keys[pygame.K_s]:
+                if keys[pygame.K_w] and keys[pygame.K_s]:
+                    pass
+                elif keys[pygame.K_w]:
+                    print("Up")
+                    snake.change_direction(Direction.UP)
+                else:
+                    print("Down")
+                    snake.change_direction(Direction.DOWN)
+            elif keys[pygame.K_a] or keys[pygame.K_d]:
+                if keys[pygame.K_a] and keys[pygame.K_d]:
+                    pass
+                elif keys[pygame.K_a]:
+                    print("Left")
+                    snake.change_direction(Direction.LEFT)
+                else:
+                    print("Right")
+                    snake.change_direction(Direction.RIGHT)
+                    
+        else:
+            if keys[pygame.K_a] or keys[pygame.K_d]:
+                if keys[pygame.K_a] and keys[pygame.K_d]:
+                    pass
+                elif keys[pygame.K_a]:
+                    print("Left")
+                    snake.change_direction(Direction.LEFT)
+                else:
+                    print("Right")
+                    snake.change_direction(Direction.RIGHT)
+            elif keys[pygame.K_w] or keys[pygame.K_s]:
+                if keys[pygame.K_w] and keys[pygame.K_s]:
+                    pass
+                elif keys[pygame.K_w]:
+                    print("Up")
+                    snake.change_direction(Direction.UP)
+                else:
+                    print("Down")
+                    snake.change_direction(Direction.DOWN)
 
-        if keys[pygame.K_a]:
-            snake.change_direction(Direction.LEFT)
-            
-        if keys[pygame.K_d]:
-            snake.change_direction(Direction.RIGHT)
         
         pygame.display.flip() # Displays the work on the screen
         

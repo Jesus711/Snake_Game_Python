@@ -91,7 +91,7 @@ class Snake:
     
     def detect_body_collision(self):
         
-        pass
+        return self.body[0] in self.body[1:]
     
     
     def detect_apple_collision(self, apple_pos):
@@ -134,6 +134,9 @@ def main():
         
         # Border Collision Detectiona
         if snake.detect_wall_collision(SCREEN_WIDTH, SCREEN_HEIGHT):
+            running = False
+            
+        if snake.detect_body_collision():
             running = False
         
         

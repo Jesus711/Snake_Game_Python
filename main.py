@@ -10,48 +10,72 @@ pygame.init()
 SCREEN_HEIGHT = 600
 SCREEN_WIDTH = 1000
 FPS_LIMIT = 10
-PRIORITIZE_VERTICAL_MOVEMENT = True # To allow holding Vertical Direction and press Horizontal
+FAST_SPEED = FPS_LIMIT * 2 # Game set to double speed when player holds space
+BLOCK_SIZE = 20
+PRIORITIZE_VERTICAL_MOVEMENT = True # To self.from moving left or right while holding Vertical direction
 
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Snake Game - Python")
-clock = pygame.time.Clock() # Needed to set the FPS limit
+# Colors (R,G,B)
+BLACK = (0,0,0)
+GREEN = (64,128,64)
+GREEN2 = (0, 200, 0)
+RED = (255,0,0)
+WHITE = (255,255,255)
 
-class Snake:
+
+class SnakeGame:
     
-    def __init__(self, start_pos, cell_size=20):
+    def __init__(self, width=SCREEN_WIDTH, height=SCREEN_HEIGHT):
         
-        self.body = [
-            [start_pos.x, start_pos.y], # Headw
-            [start_pos.x - cell_size, start_pos.y], # 
-            [start_pos.x - cell_size * 2, start_pos.y] # Tail Position
-        ]
+        self.width = width
+        self.height = height
+        
+        self.screen = pygame.display.set_mode((width, height))
+        pygame.display.set_caption("Snake Game - Python")
+        self.clock = pygame.time.Clock() # Needed to set the FPS limit
 
+        self.reset()
+        
+        
+    def reset(self):
+        
         self.direction = Direction.RIGHT
-        self.prev_tail_pos = None
-        self.cell_size = cell_size
-        self.is_alive = False
+        
+        self.snake = [
+            [self.width // 2, self.height // 2], # Head
+            [self.width // 2 - BLOCK_SIZE, self.height // 2], # 
+            [self.width // 2 - (BLOCK_SIZE * 2), self.height // 2] # Tail Position
+        ]
+        
+        self.head = None # Different movement approach
+        # self.prev_tail_pos = None
+        self.score = 0
+        self.food = None
+        self.place_food()
+        
+    
+    def place_food(self):
+        x = SCREEN_WIDTH // BLOCK_SIZE - 1 # Max horizontal Factor to use to place apple
+        y = SCREEN_HEIGHT // BLOCK_SIZE - 1 # Max Vertical Factor to use to place apple
+        
+        # Find a valid block to place the food
+        while True:
+            food_pos = pygame.Vector2(random.randint(1, x) * BLOCK_SIZE, random.randint(1, y) * BLOCK_SIZE)
+            self.food = [food_pos.x, food_pos.y]
+            if self.food not in self.snake[0]:
+                break
         
     
     def move(self):
-    
-        if self.is_alive:
-            return
-    
+        
         current_direction = self.direction.value
-        current_head_pos = self.body[0] # Get the current head position
+        current_head_pos = self.snake[0] # Get the current head position
         # Create the next head position
         next_head_pos = [
-            current_head_pos[0] + self.cell_size * current_direction[0],
-            current_head_pos[1] + self.cell_size * current_direction[1]
+            current_head_pos[0] + BLOCK_SIZE * current_direction[0],
+            current_head_pos[1] + BLOCK_SIZE * current_direction[1]
         ]
         
-        # Store the last position the tail segment was located
-        self.prev_tail_pos = self.body[-1]
-        # Create the snake's body
-        # head = next head pos
-        # rest of the body = previous segment coordinates excluding the last element
-        self.body = [next_head_pos] + self.body[:-1]
-        
+        self.head = next_head_pos # We Store the next head position
         
     def change_direction(self, new_direction):
         
@@ -64,133 +88,146 @@ class Snake:
         
         if opposite_direction[new_direction] != self.direction:
             self.direction = new_direction
-        
-        
-    def draw_snake(self):
-        
-        for segment in self.body:
-            pygame.draw.rect(screen, "green", pygame.Rect(segment[0], segment[1], self.cell_size - 1, self.cell_size - 1))
-            
-        return self.body[0]
-        
-        
-    def grow(self):
-        
-        if self.prev_tail_pos:
-            self.body.append(self.prev_tail_pos)
             
             
-    def detect_wall_collision(self, screen_width, screen_height):
+    def is_collsion(self):
         
-        head_pos = self.body[0]
-        if head_pos[0] < -5 or head_pos[0] > screen_width + 5 or head_pos[1] < -5 or head_pos[1] > screen_height + 5:
+        if (self.head[0] > self.width - BLOCK_SIZE or
+            self.head[0] < 0 or 
+            self.head[1] > self.height - BLOCK_SIZE or 
+            self.head[1] < 0):
+            
+            return True
+        
+        # Check self.head collided with its body
+        # skip the first element since head is self.0]
+        if self.head in self.snake[1:]:
             return True
         
         return False
     
-    def detect_body_collision(self):
+    
+    def update(self):
         
-        return self.body[0] in self.body[1:]
-    
-    
-    def detect_apple_collision(self, apple_pos):
+        # Move self.by inserting the next head position in front of self.list
+        self.snake.insert(0, self.head)
         
-        head_pos = self.body[0]
-        head = pygame.Rect(head_pos[0], head_pos[1], self.cell_size, self.cell_size)
+        # Check if the Snake head is colliding with an apple
+        # if so, we don't need to append a new segment, since we already added the next
+        # head position in the front
+        if self.head == self.food:
+            # Update the score
+            self.score += 1
+            # Move the food to a new spot
+            self.place_food()
+        # if the next head position did not collided with food,
+        # then, we remove the last element since we added
+        # an extra element in front
+        else:
+            self.snake.pop() # Remove the last element 
+            
         
-        return head.colliderect(apple_pos)
-    
-    
-    
+    def draw(self):
         
+        self.screen.fill(BLACK) # Set screen color
+        
+        # Iterate through self.part
+        # and draw a rectangle at the part's coordinate
+        
+        # Draw Snake Head with a 
+        pygame.draw.rect(self.screen, GREEN2, pygame.Rect(self.snake[0][0], self.snake[0][1], BLOCK_SIZE-1, BLOCK_SIZE-1))
+        
+        for segment in self.snake[1:]:
+            pygame.draw.rect(self.screen, GREEN, pygame.Rect(segment[0], segment[1], BLOCK_SIZE-1, BLOCK_SIZE-1))
+            
+        # Draw the Food
+        pygame.draw.rect(self.screen, RED, pygame.Rect(self.food[0], self.food[1], BLOCK_SIZE -1, BLOCK_SIZE -1))
 
-def main():
+        # Draw the Score
+        font = pygame.font.Font(None, 36)
+        text = font.render(f"Score: {self.score}", True, WHITE)
+        self.screen.blit(text, (0,0))
+        pygame.display.flip()
+        
     
-    cell_size = 20 # Sets the size of each block of the snake and Apple
-    x = SCREEN_WIDTH // cell_size - 1 # Max horizontal Factor to use to place apple
-    y = SCREEN_HEIGHT // cell_size - 1 # Max Vertical Factor to use to place apple
-    
-    FAST_SPEED = FPS_LIMIT * 2 # Game set to double speed when player holds space
-    
-    # Starting Position of player, Center of Screen
-    player_pos = pygame.Vector2(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
-    
-    # Get random start for apple
-    apple_pos = pygame.Vector2(random.randint(1, x) * cell_size, random.randint(1, y) * cell_size)
-    
-    snake = Snake(player_pos, cell_size)
-    
-    running = True # Game Loop
-    while running:
+    def play_next_frame(self):
+        
+        # Handle Events
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:            
-                running = False
+            if event.type == pygame.QUIT:
+                pygame.quit()            
+                
+                return -1, self.score
 
+        # Handle Movement input
         keys = pygame.key.get_pressed()
-        
         if PRIORITIZE_VERTICAL_MOVEMENT:
             # Pressing left or right while holding vertical direction does nothing
             if keys[pygame.K_w]:
-                snake.change_direction(Direction.UP)
+                self.change_direction(Direction.UP)
             elif keys[pygame.K_s]:
-                snake.change_direction(Direction.DOWN)
+                self.change_direction(Direction.DOWN)
             elif keys[pygame.K_a]:
-                snake.change_direction(Direction.LEFT)
+                self.change_direction(Direction.LEFT)
             elif keys[pygame.K_d]:
-                snake.change_direction(Direction.RIGHT)
+                self.change_direction(Direction.RIGHT)
                     
         else:
             # Pressing up or down while holding horizontal direction does nothing
             if keys[pygame.K_a]:
-                snake.change_direction(Direction.LEFT)
+                self.change_direction(Direction.LEFT)
             elif keys[pygame.K_d]:
-                snake.change_direction(Direction.RIGHT)
+                self.change_direction(Direction.RIGHT)
             elif keys[pygame.K_w]:
-                snake.change_direction(Direction.UP)
+                self.change_direction(Direction.UP)
             elif keys[pygame.K_s]:
-                snake.change_direction(Direction.DOWN)
-
+                self.change_direction(Direction.DOWN)
+                
+                
+        # Move snake
+        self.move()
         
-        snake.move()
-
-        # Border Collision Detectiona
-        if snake.detect_wall_collision(SCREEN_WIDTH, SCREEN_HEIGHT):
-            running = False
-            
-        if snake.detect_body_collision():
-            running = False
+        # Check for collisions
+        game_over = False
+        if self.is_collsion():
+            game_over =  True
+            return game_over, self.score
         
-        # Draw an apple
-        apple = pygame.draw.rect(screen, "red", pygame.Rect(apple_pos.x, apple_pos.y, cell_size - 1, cell_size - 1))
-        # Draw the snake
-        snake.draw_snake()
+        # Update snake and food
+        self.update()
         
-        if snake.detect_apple_collision(apple):
-            snake.grow()
-            apple_pos = pygame.Vector2(random.randint(1, x) * cell_size, random.randint(1, y) * cell_size)
-            while True:
-                if [apple_pos.x, apple_pos.y] in snake.body:
-                    apple_pos = pygame.Vector2(random.randint(1, x) * cell_size, random.randint(1, y) * cell_size)
-                else:
-                    break
-            
-            apple.x = apple_pos.x
-            apple.y = apple_pos.y
-            
-
+        # Draw
+        self.draw()
         
-
-        pygame.display.flip() # Displays the work on the screen
-        
-        # Set FPS limit
+        # Set FPS Speed
         if keys[pygame.K_SPACE]:
-            clock.tick(FAST_SPEED)
+            self.clock.tick(FAST_SPEED)
         else:
-            clock.tick(FPS_LIMIT)
-        screen.fill((0,0,0)) # Set the color of the screen
-
+            self.clock.tick(FPS_LIMIT)
         
-    pygame.quit()
+        return game_over, self.score
+        
+
+def main():
+    
+    game = SnakeGame() # Create a game instance
+
+    # Game Loop
+    while True:
+        
+        # Run the next game frame
+        game_over, score = game.play_next_frame()
+
+        # Exited Screen
+        if game_over == -1:
+            running = False
+            break
+
+        # Check game state
+        if game_over:
+            print(f'Final Score: {score}')
+            time.sleep(2)
+            game.reset()
 
 
 if __name__ == "__main__":
